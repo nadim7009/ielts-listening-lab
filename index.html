@@ -21,22 +21,8 @@
   --f-display:"Bricolage Grotesque", "Segoe UI", system-ui, sans-serif;
   --f-body:"Source Sans 3", "Segoe UI", system-ui, sans-serif;
   --f-mono:"JetBrains Mono", ui-monospace, Consolas, monospace;
-  --r:8px;
+  --r:8px; color-scheme:light;
 }
-@media (prefers-color-scheme: dark){ :root:not([data-theme="light"]){
-  --bg:#111615; --surface:#1A201F; --sunk:#232A28; --line:#34403C; --ink:#E7ECEA; --muted:#9AA8A3;
-  --accent:#8EA2FF; --accent-ink:#0F1530; --accent-soft:#252E55;
-  --hl:#8A7313; --hl-ink:#FFF8D8;
-  --good:#5CC994; --good-soft:#163527; --bad:#F08776; --bad-soft:#3E1F1A; --warn:#E3B45C; --warn-soft:#3A2D14;
-  --map-road:#3A4441; --map-water:#1F3B4F; --map-green:#24402A; --map-bld:#3A362C;
-  color-scheme:dark }}
-:root[data-theme="dark"]{
-  --bg:#111615; --surface:#1A201F; --sunk:#232A28; --line:#34403C; --ink:#E7ECEA; --muted:#9AA8A3;
-  --accent:#8EA2FF; --accent-ink:#0F1530; --accent-soft:#252E55;
-  --hl:#8A7313; --hl-ink:#FFF8D8;
-  --good:#5CC994; --good-soft:#163527; --bad:#F08776; --bad-soft:#3E1F1A; --warn:#E3B45C; --warn-soft:#3A2D14;
-  --map-road:#3A4441; --map-water:#1F3B4F; --map-green:#24402A; --map-bld:#3A362C;
-  color-scheme:dark }
 *{box-sizing:border-box}
 [hidden]{display:none!important}
 html,body{height:100%}
@@ -229,6 +215,64 @@ mark.hl{background:var(--hl);color:var(--hl-ink);border-radius:2px;cursor:pointe
 .qtag.ok{color:var(--good);border-color:var(--good)}
 .qtag.no{color:var(--bad);border-color:var(--bad)}
 @media (max-width:560px){.sl{grid-template-columns:1fr;gap:0}}
+
+/* ---------- IELTS computer-delivered skin: light, white sheet, blue accents, no dark bars ---------- */
+:root{--bg:#F3F6FB;--line:#D6DCE6;--ink:#1D2939;--muted:#5D6B82;--accent:#1D5FD1;--accent-soft:#E6EEFC;--edge:#9AA6B8;--r:10px}
+body{background:var(--bg) radial-gradient(900px 380px at 90% -8%,#E3EEFF,transparent 70%) no-repeat}
+.mast{border-bottom:0;padding-bottom:6px}
+.mast h1{background:linear-gradient(90deg,#1D5FD1,#0E9F8A);-webkit-background-clip:text;background-clip:text;color:transparent}
+.summary .panel,.card{border:1px solid #E1E6EF;box-shadow:0 1px 2px rgb(29 41 57 / .04),0 6px 18px rgb(29 41 57 / .06)}
+.card{border-radius:14px;border-top:4px solid var(--tint,#1D5FD1);transition:transform .12s, box-shadow .12s}
+.card:hover{transform:translateY(-2px);box-shadow:0 10px 26px rgb(29 41 57 / .10)}
+.tier:nth-of-type(1){--tint:#0E9F8A}.tier:nth-of-type(2){--tint:#1D5FD1}.tier:nth-of-type(3){--tint:#7A4FE0}.tier:nth-of-type(4){--tint:#E0573A}
+.tier-head h2{color:var(--tint)}
+.card .btn.primary{background:var(--tint);border-color:var(--tint)}
+.btn{border-radius:8px}
+.btn.primary{background:var(--accent);border-color:var(--accent)}
+.chip{border-radius:6px}
+/* exam header: white bar like the real test */
+.topbar{background:#FFFFFF;color:var(--ink);border-bottom:1px solid var(--line);box-shadow:0 2px 8px rgb(29 41 57 / .06)}
+.topbar .who{font-size:16px;color:var(--ink)}
+.topbar .who::before{content:"Listening";display:inline-block;font:700 11px var(--f-body);letter-spacing:.08em;text-transform:uppercase;color:#fff;background:var(--accent);border-radius:4px;padding:2px 7px;margin-right:10px;vertical-align:2px}
+.topbar .btn{background:#fff;color:var(--ink);border-color:var(--line)}
+.topbar .btn:hover{border-color:var(--accent);color:var(--accent)}
+.topbar .btn.primary{background:var(--accent);color:#fff;border-color:var(--accent)}
+#exClock{background:#F1F4F9;border:1px solid var(--line);border-radius:6px;padding:3px 10px;font-weight:600}
+.dot{background:#B7C0CE}
+.sheet{padding-top:18px;width:100%}
+.part-head{background:#EEF2F8;border:1px solid #DCE3EE;border-left:4px solid var(--accent);border-radius:6px}
+.part-head h2{font-size:18px}
+.group{border:1px solid #E1E6EF;border-radius:8px;box-shadow:0 1px 2px rgb(29 41 57 / .03)}
+.group-head .qr{color:var(--ink)}
+.gap b{border:1px solid var(--edge);color:var(--muted);background:#fff}
+.gap input{background:#fff;border:1px solid var(--edge);border-radius:4px;padding:4px 8px}
+.gap input:focus{border-color:var(--accent);background:#fff;box-shadow:0 0 0 3px var(--accent-soft)}
+.qnum{border:1px solid var(--edge);color:var(--ink);background:#fff}
+.opt{border-radius:6px}
+.opt:hover{background:#F3F6FB}
+.opt:has(input:checked){background:var(--accent-soft);border-color:#BCD0F5}
+.optbox,.flow .fb,.mapsvg{border-color:var(--edge)}
+.flow .arrow{background:var(--edge)}.flow .arrow::after{border-top-color:var(--edge)}
+.match-row select{background:#fff;border-color:var(--edge)}
+table.qt th{background:#F1F4F9}
+#hlbtn{background:var(--accent);color:#fff}
+.navbar{background:#F7F9FC;border-top:1px solid var(--line);box-shadow:0 -2px 8px rgb(29 41 57 / .05)}
+.navpart.on{border-color:#BCD0F5;background:#fff}
+.navq button{border-color:var(--line);background:#fff;color:var(--ink)}
+.navq button:hover{border-color:var(--accent)}
+.navq button.done{background:var(--accent-soft);color:var(--accent);border-color:#BCD0F5;box-shadow:inset 0 -3px 0 var(--accent)}
+.overlay{background:rgb(29 41 57 / .35)}
+.dialog{border-radius:14px;box-shadow:0 20px 50px rgb(29 41 57 / .2)}
+.toast{background:var(--accent);color:#fff}
+.res-hero{border-bottom:1px solid var(--line)}
+.bigband{color:var(--accent)}
+.filters .chip[aria-pressed="true"],.tabs button[aria-selected="true"]{background:var(--accent);color:#fff;border-color:var(--accent)}
+.rv-bar{background:#fff}
+/* embedded inside IELTS Word Lab */
+html.embed body{background:transparent}
+html.embed #home{padding-top:6px}
+html.embed .mast > div{display:none}
+html.embed .mast{justify-content:flex-end}
 </style>
 </head>
 <body>
@@ -943,6 +987,20 @@ $('#rvRate').onchange = e => { if (lineSpeaker) lineSpeaker.rate = +e.target.val
 window.addEventListener('beforeunload', e => { if (S && S.player && S.player.state === 'playing'){ e.preventDefault(); e.returnValue = ''; } });
 
 renderHome();
+
+/* ---------- embed in IELTS Word Lab (same site) ---------- */
+(function(){
+  if (!/[?&]embed=1/.test(location.search) || window.parent === window) return;
+  document.documentElement.classList.add('embed');
+  const view = () => ['home','exam','results','review'].find(v => !$('#'+v).hidden) || 'home';
+  let last = '';
+  const tell = () => { const v = view(); const h = Math.ceil(document.getElementById('app').getBoundingClientRect().height) + 40;
+    const key = v + ':' + h; if (key === last) return; last = key; parent.postMessage({ lab:1, view:v, h }, location.origin); };
+  const _show = show; show = function(id){ _show(id); last = ''; setTimeout(tell, 30); };
+  new ResizeObserver(tell).observe(document.getElementById('app'));
+  setTimeout(tell, 50);
+  addEventListener('pagehide', () => { try { speechSynthesis.cancel(); } catch (e) {} });
+})();
 </script>
 
 </body>
