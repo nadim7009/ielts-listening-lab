@@ -137,7 +137,8 @@ table.qt th{background:var(--sunk);font-weight:700}
 .match-row select{border:1px solid var(--line);background:var(--sunk);border-radius:6px;padding:4px 8px;min-width:70px}
 .mapwrap{display:grid;grid-template-columns:minmax(0,1fr);gap:18px;align-items:start}
 .mapwrap > div:first-child{max-width:640px}
-.mapsvg{width:100%;height:auto;border:1.5px solid var(--ink);border-radius:6px;background:var(--surface)}
+.mapsvg,.plansvg{width:100%;height:auto;border-radius:6px;display:block}
+.plansvg .ml{fill:#1D2939}.plansvg .mr{fill:#5D5547;font-style:italic}.plansvg .mx{fill:#3B4555;font-style:italic}
 .mapsvg text{font-family:var(--f-body);fill:var(--ink)}
 .grid-scroll{overflow-x:auto}
 table.mapgrid{border-collapse:collapse;font-size:15px}
@@ -444,7 +445,7 @@ const TTS = {
   usable(){ return this.voices.filter(v => !store.excluded.includes(v.name)); },
   gender(v){ const n = v.name.replace(/microsoft|google|apple|online|natural|\(.*?\)/gi,' '); if (FEMALE.test(n)) return 'f'; if (MALE.test(n)) return 'm'; return '?'; },
   acc(v){ const m = v.lang.replace('_','-').split('-')[1]; return (m||'US').toUpperCase(); },
-  quality(v){ return /natural|online|neural|premium|enhanced/i.test(v.name) ? 3 : (/google/i.test(v.name) ? 1 : 0); },
+  quality(v){ if (/google/i.test(v.name) && !v.localService) return -4; return /natural|online|neural|premium|enhanced/i.test(v.name) ? 3 : (v.localService ? 1 : 0); },
   score(v, sp, used){
     const g = this.gender(v), a = this.acc(v);
     const near = {GB:['IE','AU','NZ'],AU:['NZ','GB'],NZ:['AU','GB'],US:['CA'],CA:['US'],IE:['GB']};
@@ -544,13 +545,28 @@ class Player {
     u.onend = next; u.onerror = (e) => { if (e.error === 'interrupted' || e.error === 'canceled') return; next(); };
     const est = (seg.text.length / (13 * this.rate)) * 1000 * 1.9 + 4000;
     this.timer = setTimeout(() => { if (tok !== this.token) return; speechSynthesis.cancel(); next(); }, est);
+    u.onstart = () => { TTS.heard = true; };
+    if (speechSynthesis.paused) speechSynthesis.resume();
     speechSynthesis.speak(u);
+    if (!TTS.heard && !TTS.warned) setTimeout(() => { if (TTS.heard || TTS.warned || tok !== this.token) return; TTS.warned = true; noSound(c.voice); }, 6000);
   }
   pause(){ if (this.state !== 'playing') return; this.state = 'paused'; this.token++; clearTimeout(this.timer); clearInterval(this.timer); if (TTS.ok) speechSynthesis.cancel(); }
   resume(){ if (this.state !== 'paused') return; this.state = 'playing'; this.run(); }
   stop(){ this.state = 'stopped'; this.token++; clearTimeout(this.timer); clearInterval(this.timer); if (TTS.ok) speechSynthesis.cancel(); }
 }
 
+
+function noSound(v){
+  const ov = $('#overlay'); if (!ov.hidden) return;
+  ov.innerHTML = `<div class="dialog" role="dialog" aria-modal="true"><h2>Sound shuru hoyni?</h2>
+    <p>Browser er voice ${v ? `<b>${esc(v.name)}</b> ` : ''}kaj korche na mone hocche. Chrome er "Google" voice gula onek somoy internet chara chup kore thake.</p>
+    <p>Neeche onno voice diye abar chalao. Na hole test ta Microsoft Edge e kholo, oikhane natural voice ache.</p>
+    <div class="row"><button class="btn primary" id="nsOther" type="button">Onno voice diye chalao</button><button class="btn" id="nsOk" type="button">Ami shunte pacchi</button></div></div>`;
+  ov.hidden = false;
+  $('#nsOk').onclick = () => { ov.hidden = true; TTS.heard = true; };
+  $('#nsOther').onclick = () => { ov.hidden = true; if (v && !store.excluded.includes(v.name)) { store.excluded.push(v.name); save(); }
+    if (S && S.player){ S.player.casts = {}; S.player.token++; speechSynthesis.cancel(); TTS.heard = false; TTS.warned = false; setTimeout(() => S.player.run(), 300); } };
+}
 /* ---------- views ---------- */
 function show(id){ ['home','exam','results','review'].forEach(v => $('#'+v).hidden = v !== id); window.scrollTo(0,0); }
 function toast(msg){ const t = document.createElement('div'); t.className = 'toast'; t.textContent = msg; document.body.appendChild(t); setTimeout(() => t.remove(), 3200); }
@@ -680,25 +696,59 @@ function renderGroup(g){
   }
   return h + '</div>';
 }
-function mapSVG(items){
-  const sc = 6; let s = `<svg class="mapsvg" viewBox="0 0 ${100*sc} ${70*sc}" role="img" aria-label="Map">`;
-  s += `<rect x="0" y="0" width="${100*sc}" height="${70*sc}" fill="var(--surface)"/>`;
-  const fills = { R:'var(--map-bld)', W:'var(--map-water)', G:'var(--map-green)', P:'var(--map-road)', B:'none' };
-  for (const m of items){
-    if ('RWGPB'.includes(m.k)){
-      s += `<rect x="${m.x*sc}" y="${m.y*sc}" width="${m.w*sc}" height="${m.h*sc}" rx="${m.k==='W'?18:(m.k==='P'?0:4)}" fill="${fills[m.k]}" stroke="${m.k==='P'?'none':'var(--ink)'}" stroke-width="${m.k==='B'?1.5:1}" ${m.k==='B'?'stroke-dasharray="6 4"':''}/>`;
-      if (m.t){ const vertical = m.h > m.w * 1.6 && m.w < 12; const room = (vertical ? m.h : m.w) * sc - 8; const fs = Math.max(11, Math.min(17, room / (m.t.length * 0.56)));
-        s += vertical ? `<text x="${(m.x+m.w/2)*sc}" y="${(m.y+m.h/2)*sc}" font-size="${fs.toFixed(1)}" text-anchor="middle" dominant-baseline="middle" transform="rotate(-90 ${(m.x+m.w/2)*sc} ${(m.y+m.h/2)*sc})">${esc(m.t)}</text>`
-          : `<text x="${(m.x+m.w/2)*sc}" y="${(m.y+m.h/2)*sc}" font-size="${fs.toFixed(1)}" text-anchor="middle" dominant-baseline="middle">${esc(m.t)}</text>`; }
-    }
-  }
-  for (const m of items){
-    if (m.k === 'X') s += `<text x="${m.x*sc}" y="${m.y*sc}" font-size="16" font-style="italic" text-anchor="middle" dominant-baseline="middle">${esc(m.t)}</text>`;
-    if (m.k === 'N') s += `<g transform="translate(${m.x*sc},${m.y*sc})"><path d="M0,-20 L7,4 L0,-2 L-7,4 Z" fill="var(--ink)"/><text y="20" font-size="15" font-weight="700" text-anchor="middle">N</text></g>`;
-    if (m.k === 'L') s += `<g><circle cx="${m.x*sc}" cy="${m.y*sc}" r="15" fill="var(--ink)"/><text x="${m.x*sc}" y="${m.y*sc+1}" font-size="17" font-weight="700" text-anchor="middle" dominant-baseline="middle" style="fill:var(--bg)">${esc(m.t)}</text></g>`;
-  }
-  return s + '</svg>';
+/* flat plan map like the exam paper: thin outlines, labels, trees, water, roads */
+function planSVG(items, opts){
+  opts = opts || {}; const sc = 6, W = 100 * sc, H = 70 * sc;
+  let s = `<svg class="plansvg" viewBox="0 0 ${W} ${H}" role="img" aria-label="Map"><defs>
+    <pattern id="pw" width="26" height="12" patternUnits="userSpaceOnUse"><path d="M0,7 q6.5,-5 13,0 t13,0" fill="none" stroke="#7FA9CF" stroke-width="1"/></pattern>
+    <pattern id="pg" width="8" height="8" patternUnits="userSpaceOnUse"><circle cx="2" cy="2" r=".9" fill="#8DB07A"/></pattern></defs>
+    <rect x="0" y="0" width="${W}" height="${H}" fill="#FCFBF7"/>`;
+  const tree = (x, y, r) => `<circle cx="${x}" cy="${y}" r="${r}" fill="#B9D4A3" stroke="#6E9257" stroke-width="1"/><circle cx="${x - r * .3}" cy="${y - r * .3}" r="${r * .35}" fill="#CFE2BE"/>`;
+  const label = (m, size) => { const vertical = m.h > m.w * 1.6 && m.w < 12; const room = (vertical ? m.h : m.w) * sc - 10; const fs = Math.max(10.5, Math.min(size || 15, room / (String(m.t).length * .56)));
+    const x = (m.x + m.w / 2) * sc, y = (m.y + m.h / 2) * sc;
+    return `<text x="${x}" y="${y}" font-size="${fs.toFixed(1)}" text-anchor="middle" dominant-baseline="middle" class="ml" ${vertical ? `transform="rotate(-90 ${x} ${y})"` : ''}>${esc(m.t)}</text>`; };
+  const ord = { G:0, W:1, P:2, B:3, R:4 };
+  /* letters standing on open ground get a small unnamed plot, the way the exam maps mark a building or area */
+  const rects = items.filter(m => m.k in ord);
+  const inRect = (x, y, r, pad) => x >= r.x - (pad || 0) && x <= r.x + r.w + (pad || 0) && y >= r.y - (pad || 0) && y <= r.y + r.h + (pad || 0);
+  const hit = (a, b) => a.x < b.x + b.w && a.x + a.w > b.x && a.y < b.y + b.h && a.y + a.h > b.y;
+  const plots = [];
+  if (!opts.noPlots) items.filter(m => m.k === 'L').forEach(m => {
+    if (rects.some(r => inRect(m.x, m.y, r))) return;
+    for (const [w, h] of [[11, 7.5], [9, 6.5], [7.5, 5.5], [6, 5]]){
+      const pr = { x:m.x - w / 2, y:m.y - h / 2, w, h };
+      if (pr.x < 1 || pr.y < 1 || pr.x + w > 99 || pr.y + h > 69) continue;
+      if (rects.some(r => hit(pr, r)) || plots.some(q => hit(pr, { x:q.x - .8, y:q.y - .8, w:q.w + 1.6, h:q.h + 1.6 }))) continue;
+      plots.push(pr); break; } });
+  plots.forEach(q => { s += `<rect x="${q.x * sc}" y="${q.y * sc}" width="${q.w * sc}" height="${q.h * sc}" rx="4" fill="#F1EEE6" stroke="#8E95A3" stroke-width="1.2"/>`; });
+  /* a few trees on open ground so the plan does not look empty */
+  if (!opts.noTrees){ let seed = items.length * 7 + 3; const rnd = () => (seed = (seed * 9301 + 49297) % 233280) / 233280; let n = 0;
+    for (let k = 0; k < 120 && n < 9; k++){ const x = 3 + rnd() * 94, y = 3 + rnd() * 64; const box = { x:x - 2.2, y:y - 2.2, w:4.4, h:4.4 };
+      if (rects.some(r => hit(box, { x:r.x - 1.5, y:r.y - 1.5, w:r.w + 3, h:r.h + 3 })) || plots.some(q => hit(box, q))) continue;
+      if (items.some(m => (m.k === 'L' || m.k === 'X' || m.k === 'N') && Math.abs(m.x - x) < (m.k === 'X' ? 12 : 6) && Math.abs(m.y - y) < 5)) continue;
+      s += tree(x * sc, y * sc, 7); n++; } }
+  items.filter(m => m.k in ord).sort((a, b) => ord[a.k] - ord[b.k]).forEach(m => {
+    const x = m.x * sc, y = m.y * sc, w = m.w * sc, h = m.h * sc;
+    if (m.k === 'G'){ s += `<rect x="${x}" y="${y}" width="${w}" height="${h}" rx="10" fill="#E6F0DC" stroke="#9DBB86" stroke-width="1.2"/><rect x="${x}" y="${y}" width="${w}" height="${h}" rx="10" fill="url(#pg)"/>`;
+      const r = Math.min(9, Math.min(w, h) / 6); [[.14, .2], [.86, .22], [.12, .8], [.88, .8]].forEach(([fx, fy]) => { if (w > 50 && h > 40) s += tree(x + w * fx, y + h * fy, r); }); }
+    if (m.k === 'W') s += `<rect x="${x}" y="${y}" width="${w}" height="${h}" rx="${Math.min(w, h) * .4}" fill="#DCEBF7" stroke="#86AFD3" stroke-width="1.2"/><rect x="${x + 4}" y="${y + 4}" width="${Math.max(0, w - 8)}" height="${Math.max(0, h - 8)}" rx="${Math.min(w, h) * .35}" fill="url(#pw)" opacity=".7"/>`;
+    if (m.k === 'P'){ s += `<rect x="${x}" y="${y}" width="${w}" height="${h}" fill="#ECE8DF" stroke="#A39B8A" stroke-width="1"/>`;
+      if (w > h * 3) s += `<line x1="${x + 6}" x2="${x + w - 6}" y1="${y + h / 2}" y2="${y + h / 2}" stroke="#fff" stroke-width="2" stroke-dasharray="12 9"/>`;
+      else if (h > w * 3) s += `<line y1="${y + 6}" y2="${y + h - 6}" x1="${x + w / 2}" x2="${x + w / 2}" stroke="#fff" stroke-width="2" stroke-dasharray="12 9"/>`; }
+    if (m.k === 'B') s += `<rect x="${x}" y="${y}" width="${w}" height="${h}" rx="6" fill="none" stroke="#5D6B82" stroke-width="1.4" stroke-dasharray="7 5"/>`;
+    if (m.k === 'R') s += `<rect x="${x}" y="${y}" width="${w}" height="${h}" rx="3" fill="#FFFFFF" stroke="#3B4555" stroke-width="1.5"/><rect x="${x + 3}" y="${y + 3}" width="${Math.max(0, w - 6)}" height="${Math.max(0, h - 6)}" rx="2" fill="none" stroke="#D5D9E0" stroke-width="1"/>`;
+  });
+  items.filter(m => m.k in ord && m.t).forEach(m => { if (m.k === 'P'){ const vertical = m.h > m.w; const x = (m.x + m.w / 2) * sc, y = (m.y + m.h / 2) * sc;
+      s += `<text x="${x}" y="${y}" font-size="13" text-anchor="middle" dominant-baseline="middle" class="mr" ${vertical ? `transform="rotate(-90 ${x} ${y})"` : ''}><tspan>${esc(m.t)}</tspan></text>`; }
+    else s += label(m, m.k === 'R' ? 14 : 15); });
+  items.forEach(m => {
+    if (m.k === 'X') s += `<text x="${m.x * sc}" y="${m.y * sc}" font-size="14" text-anchor="middle" dominant-baseline="middle" class="mx">${esc(m.t)}</text>`;
+    if (m.k === 'N') s += `<g transform="translate(${m.x * sc},${m.y * sc})"><circle r="17" fill="#fff" stroke="#3B4555" stroke-width="1.2"/><path d="M0,-14 L5,3 L0,-1 L-5,3 Z" fill="#3B4555"/><text y="12" font-size="10" font-weight="700" text-anchor="middle" fill="#3B4555">N</text></g>`;
+    if (m.k === 'L') s += `<g><circle cx="${m.x * sc}" cy="${m.y * sc}" r="14" fill="#fff" stroke="#1D2939" stroke-width="1.8"/><text x="${m.x * sc}" y="${m.y * sc + 1}" font-size="16" font-weight="700" text-anchor="middle" dominant-baseline="middle" fill="#1D2939">${esc(m.t)}</text></g>`;
+  });
+  return s + `<rect x=".5" y=".5" width="${W - 1}" height="${H - 1}" fill="none" stroke="#3B4555" stroke-width="1"/></svg>`;
 }
+function mapSVG(items){ return planSVG(items); }
 function renderSheet(){
   const sheet = $('#sheet'); sheet.innerHTML = '';
   for (const p of S.test.parts){
@@ -755,6 +805,7 @@ function testSound(){
   if (c._N && c._N.voice) u.voice = c._N.voice; u.rate = store.rate; speechSynthesis.speak(u);
 }
 function beginAudio(){
+  if (TTS.ok){ try { speechSynthesis.cancel(); } catch (e) {} } TTS.heard = false; TTS.warned = false;
   const segs = buildProgramme(S.test, S.partNums, S.exam);
   S.t0 = Date.now(); S.elapsed = 0;
   S.clock = setInterval(() => { if (S && S.player && S.player.state === 'playing') S.elapsed += 1; $('#exClock').textContent = fmt(S ? S.elapsed : 0); }, 1000);
